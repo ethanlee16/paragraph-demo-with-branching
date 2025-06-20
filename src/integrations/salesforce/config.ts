@@ -1,5 +1,6 @@
 import { IIntegrationConfig } from '@useparagon/core/integration';
 
+import { default as ListenForNewOpps } from './workflows/listenForNewOpps';
 import { default as SyncAccounts } from './workflows/syncAccounts';
 
 /**
@@ -15,7 +16,7 @@ Our Salesforce integration enables you to:
 • Sync records from Salesforce  
 • Receive updates when a record in Salesforce is created or updated`,
   showWatermark: true,
-  workflowDisplayOrder: [SyncAccounts],
+  workflowDisplayOrder: [SyncAccounts, ListenForNewOpps],
 };
 
 export default config;
