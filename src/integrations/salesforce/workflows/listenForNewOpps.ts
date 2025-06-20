@@ -1,3 +1,4 @@
+import { generateWorkflowId } from '../../../utils';
 import { RequestStep, Workflow } from '@useparagon/core';
 import { IContext } from '@useparagon/core/execution';
 import { IPersona } from '@useparagon/core/persona';
@@ -96,5 +97,5 @@ export default class extends Workflow<
   /**
    * This property is maintained by Paragon. Do not edit this property.
    */
-  readonly id: string = '32b98183-77d0-40ec-ad39-dbe466b22d33';
+  readonly id: string = generateWorkflowId('salesforce/workflows/listenForNewOpps.ts');
 }
