@@ -1,3 +1,4 @@
+import { generateWorkflowId } from '../../../utils';
 import { CronStep, Workflow } from '@useparagon/core';
 import { IContext } from '@useparagon/core/execution';
 import { IPersona } from '@useparagon/core/persona';
@@ -100,5 +101,5 @@ export default class extends Workflow<
   /**
    * This property is maintained by Paragon. Do not edit this property.
    */
-  readonly id: string = 'cc20c700-d224-4753-9960-e8fdb8380fdc';
+  readonly id: string = generateWorkflowId('slack/workflows/sendMessages.ts');
 }
