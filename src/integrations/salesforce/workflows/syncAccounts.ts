@@ -97,5 +97,5 @@ export default class extends Workflow<
   /**
    * This property is maintained by Paragon. Do not edit this property.
    */
-  readonly id: string = generateWorkflowId('b161a5ec-5d41-4c61-9a19-f011a7aebf04');
+  readonly id: string = generateWorkflowId('salesforce/workflows/syncAccounts.ts');
 }
