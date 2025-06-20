@@ -1,5 +1,5 @@
 import { generateWorkflowId } from '../../../utils';
-import { EndpointStep, Workflow } from '@useparagon/core';
+import { RequestStep, Workflow } from '@useparagon/core';
 import { IContext } from '@useparagon/core/execution';
 import { IPersona } from '@useparagon/core/persona';
 import { ConditionalInput } from '@useparagon/core/steps/library/conditional';
@@ -13,7 +13,7 @@ import {
 import personaMeta from '../../../persona.meta';
 
 /**
- * Sync accounts Workflow implementation
+ * Listen for new opps Workflow implementation
  */
 export default class extends Workflow<
   ISalesforceIntegration,
@@ -28,35 +28,34 @@ export default class extends Workflow<
     context: IContext<InputResultMap>,
     connectUser: IConnectUser<IPersona<typeof personaMeta>>,
   ) {
-    const triggerStep = new EndpointStep({
-      allowArbitraryPayload: false,
-      paramValidations: [] as const,
-      headerValidations: [] as const,
-      bodyValidations: [] as const,
+    const triggerStep = integration.triggers.recordCreated({
+      recordsFilterFormula: undefined,
+      recordType: 'Opportunity',
     });
 
-    const actionStep = integration.actions.createRecord(
-      { recordType: 'Account', 'field-Name': 'Example' },
-      {
-        autoRetry: false,
-        continueWorkflowOnError: false,
-        description: 'description',
-      },
-    );
+    const requestStep = new RequestStep({
+      autoRetry: false,
+      continueWorkflowOnError: false,
+      description: 'description',
+      url: `https://example.com`,
+      method: 'GET',
+      params: {},
+      headers: {},
+    });
 
-    triggerStep.nextStep(actionStep);
+    triggerStep.nextStep(requestStep);
 
     /**
      * Pass all steps used in the workflow to the `.register()`
      * function. The keys used in this function must remain stable.
      */
-    return this.register({ triggerStep, actionStep });
+    return this.register({ triggerStep, requestStep });
   }
 
   /**
    * The name of the workflow, used in the Dashboard and Connect Portal.
    */
-  name: string = 'Sync accounts';
+  name: string = 'Listen for new opps';
 
   /**
    * A user-facing description of the workflow shown in the Connect Portal.
@@ -98,5 +97,5 @@ export default class extends Workflow<
   /**
    * This property is maintained by Paragon. Do not edit this property.
    */
-  readonly id: string = generateWorkflowId('salesforce/workflows/syncAccounts.ts');
+  readonly id: string = generateWorkflowId('salesforce/workflows/listenForNewOpps.ts');
 }
