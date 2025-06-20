@@ -57,22 +57,36 @@ update_file() {
 
     echo "    [?] Updating $file_type file: $file_name..."
 
-    # Check if already processed
-    if grep -q "$generator_func(" "$file_path"; then
-        echo "    [i] File already processed with $generator_func. Skipping."
-        return
-    fi
-
-    # Extract the original UUID from the readonly id property
-    local original_uuid=""
-    if grep -q "readonly id: string = " "$file_path"; then
-        original_uuid=$(grep "readonly id: string = " "$file_path" | sed "s/.*readonly id: string = '\([^']*\)'.*/\1/")
-    elif grep -q "readonly id = " "$file_path"; then
-        original_uuid=$(grep "readonly id = " "$file_path" | sed "s/.*readonly id = '\([^']*\)'.*/\1/")
-    fi
-
-    # For resources, use name property or directory name as seed
-    if [[ "$file_type" == "resource" ]]; then
+    # Generate seed value based on file type and path
+    if [[ "$file_type" == "workflow" ]]; then
+        # Extract integration name and workflow file name from path
+        # Expected path: ./src/integrations/{integrationName}/workflows/{workflowFile}.ts
+        if [[ "$file_path" =~ ./src/integrations/([^/]+)/workflows/([^/]+)\.ts ]]; then
+            local integration_name="${BASH_REMATCH[1]}"
+            local workflow_file="${BASH_REMATCH[2]}"
+            seed_value="${integration_name}/workflows/${workflow_file}.ts"
+            echo "    [i] Using workflow path-based seed: $seed_value"
+        else
+            echo "    [!] Could not extract integration and workflow name from path: $file_path. Skipping."
+            return
+        fi
+    elif [[ "$file_type" == "trigger" ]]; then
+        # Extract integration/resource name and trigger file name from path
+        # Expected paths: 
+        # - ./src/integrations/{integrationName}/triggers/{triggerFile}.ts
+        # - ./src/resources/{resourceName}/triggers/{triggerFile}.ts
+        if [[ "$file_path" =~ ./src/(integrations|resources)/([^/]+)/triggers/([^/]+)\.ts ]]; then
+            local parent_type="${BASH_REMATCH[1]}"
+            local parent_name="${BASH_REMATCH[2]}"
+            local trigger_file="${BASH_REMATCH[3]}"
+            seed_value="${parent_name}/triggers/${trigger_file}.ts"
+            echo "    [i] Using trigger path-based seed: $seed_value"
+        else
+            echo "    [!] Could not extract integration/resource and trigger name from path: $file_path. Skipping."
+            return
+        fi
+    elif [[ "$file_type" == "resource" ]]; then
+        # For resources, use name property or directory name as seed (unchanged)
         local resource_name=$(grep "name: string = " "$file_path" 2>/dev/null | sed "s/.*name: string = '\([^']*\)'.*/\1/" || true)
         if [[ -n "$resource_name" ]]; then
             seed_value="$resource_name"
@@ -81,13 +95,10 @@ update_file() {
             seed_value=$(basename "$(dirname "$file_path")")
             echo "    [i] Using directory name as seed: $seed_value"
         fi
-    else
-        seed_value="$original_uuid"
-        echo "    [i] Using original UUID as seed: $seed_value"
     fi
 
     if [[ -z "$seed_value" ]]; then
-        echo "    [!] Could not extract seed value from $file_name. Skipping."
+        echo "    [!] Could not generate seed value for $file_name. Skipping."
         return
     fi
 
@@ -99,9 +110,9 @@ $import_path" "$file_path"
 
     # Update the readonly id property
     if grep -q "readonly id: string = " "$file_path"; then
-        sed_inplace "s/readonly id: string = .*/readonly id: string = $generator_func('$seed_value');/" "$file_path"
+        sed_inplace "s|readonly id: string = .*|readonly id: string = $generator_func('$seed_value');|" "$file_path"
     elif grep -q "readonly id = " "$file_path"; then
-        sed_inplace "s/readonly id = .*/readonly id = $generator_func('$seed_value');/" "$file_path"
+        sed_inplace "s|readonly id = .*|readonly id = $generator_func('$seed_value');|" "$file_path"
     fi
 
     echo "    [+] Success: $file_name!"
