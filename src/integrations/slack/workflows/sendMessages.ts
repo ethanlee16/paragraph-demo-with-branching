@@ -1,4 +1,3 @@
-import { generateWorkflowId } from '../../../utils';
 import { CronStep, Workflow } from '@useparagon/core';
 import { IContext } from '@useparagon/core/execution';
 import { IPersona } from '@useparagon/core/persona';
@@ -34,7 +33,12 @@ export default class extends Workflow<
     });
 
     const actionStep = integration.actions.sendMessage(
-      { channel: `general`, message: `test`, botName: `Paragon` },
+      {
+        channel: `general`,
+        message: `test!`,
+        botName: `Paragon`,
+        botIcon: `:robot:`,
+      },
       {
         autoRetry: false,
         continueWorkflowOnError: false,
@@ -96,5 +100,5 @@ export default class extends Workflow<
   /**
    * This property is maintained by Paragon. Do not edit this property.
    */
-  readonly id: string = generateWorkflowId('slack/workflows/sendMessages.ts');
+  readonly id: string = 'cc20c700-d224-4753-9960-e8fdb8380fdc';
 }
