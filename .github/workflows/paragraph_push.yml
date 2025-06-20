@@ -1,0 +1,64 @@
+name: Push to Paragon
+
+on:
+    push:
+        # Set this to your selected branch in Paragon
+        branches: [ "main" ]
+
+    # Allows you to run this workflow manually from the Actions tab
+    workflow_dispatch: 
+
+jobs:
+  push_to_paragon:
+    name: Push to Paragon
+    runs-on: ubuntu-latest
+      
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Update project.json based on branch
+        shell: bash
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          echo "Current branch: $BRANCH_NAME"
+          
+          # Check if branches.json exists and has the branch mapping
+          if [ -f ".para/branches.json" ]; then
+            # Extract the project config for the current branch
+            PROJECT_CONFIG=$(jq -r --arg branch "$BRANCH_NAME" '.[$branch] // empty' .para/branches.json)
+            
+            if [ ! -z "$PROJECT_CONFIG" ] && [ "$PROJECT_CONFIG" != "null" ]; then
+              echo "Found configuration for branch $BRANCH_NAME"
+              echo "$PROJECT_CONFIG" > .para/project.json
+              echo "Updated .para/project.json with branch-specific configuration"
+              cat .para/project.json
+            else
+              echo "No configuration found for branch $BRANCH_NAME in branches.json"
+            fi
+          else
+            echo "branches.json not found, skipping project.json update"
+          fi
+
+      - name: Generate and update IDs
+        id: generate_ids
+        shell: bash
+        run: |
+          echo "Running ID generation script..."
+          chmod +x bin/set_generated_ids.sh
+          ./bin/set_generated_ids.sh
+
+      - uses: EndBug/add-and-commit@v9
+        id: commit_ids
+        with:
+          add: 'src'
+          new_branch: main
+          message: Auto-update generated IDs
+          committer_name: GitHub Actions
+          committer_email: actions@github.com
+      
+      - id: push
+        uses: useparagon/paragraph-push@v3
+        with:
+          paragonKey: ${{ secrets.PARAGON_CLI_KEY }}
+          paragonZeusUrl: https://zeus.useparagon.com
+          paragonDashboardUrl: https://dashboard.useparagon.com

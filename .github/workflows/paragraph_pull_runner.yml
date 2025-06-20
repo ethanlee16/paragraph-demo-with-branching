@@ -1,0 +1,80 @@
+name: Pull from Paragon
+
+on: 
+  workflow_dispatch:
+    inputs:
+      projectId:
+        type: string
+        required: true
+        description: 'Paragon project id'
+
+      commitId:
+        type: string
+        required: true
+        description: 'Paragon project commit id'
+
+jobs:
+  pull_from_paragon:
+    name: Pull from Paragon
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Update project.json based on branch
+        shell: bash
+        run: |
+          BRANCH_NAME="${{ steps.extract_branch.outputs.branch }}"
+          echo "Current branch: $BRANCH_NAME"
+          
+          # Check if branches.json exists and has the branch mapping
+          if [ -f ".para/branches.json" ]; then
+            # Extract the project config for the current branch
+            PROJECT_CONFIG=$(jq -r --arg branch "$BRANCH_NAME" '.[$branch] // empty' .para/branches.json)
+            
+            if [ ! -z "$PROJECT_CONFIG" ] && [ "$PROJECT_CONFIG" != "null" ]; then
+              echo "Found configuration for branch $BRANCH_NAME"
+              echo "$PROJECT_CONFIG" > .para/project.json
+              echo "Updated .para/project.json with branch-specific configuration"
+              cat .para/project.json
+            else
+              echo "No configuration found for branch $BRANCH_NAME in branches.json"
+            fi
+          else
+            echo "branches.json not found, skipping project.json update"
+          fi
+
+      - id: pull
+        uses: useparagon/paragraph-pull@v1
+        with:
+          projectId: ${{ inputs.projectId }}
+          commitId: ${{ inputs.commitId }}
+          paragonKey: ${{ secrets.PARAGON_CLI_KEY }}
+          paragonZeusUrl: https://zeus.useparagon.com
+          paragonDashboardUrl: https://dashboard.useparagon.com
+
+      - name: Generate and update IDs after pull
+        shell: bash
+        run: |
+          echo "Running ID generation script after Paragon pull..."
+          chmod +x bin/set_generated_ids.sh
+          ./bin/set_generated_ids.sh
+
+      - uses: EndBug/add-and-commit@v9
+        id: commit_ids
+        with:
+          add: 'src'
+          new_branch: ${{ steps.extract_branch.outputs.branch }}
+          message: Auto-update generated IDs
+          committer_name: GitHub Actions
+          committer_email: actions@github.com

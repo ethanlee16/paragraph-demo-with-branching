@@ -1,0 +1,12 @@
+{
+  "main": {
+    "projectId": "ac714c84-f1e3-4b9d-9bd7-70b549752be5",
+    "projectName": "Development",
+    "profile": "default"
+  },
+  "proserv": {
+    "projectId": "03bba07a-3d65-4adb-977b-826892fa9c94",
+    "projectName": "Professional Services",
+    "profile": "default"
+  }
+}

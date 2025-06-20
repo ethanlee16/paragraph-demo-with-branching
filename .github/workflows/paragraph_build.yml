@@ -1,0 +1,109 @@
+name: 'Paragraph Build'
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  paragraph_build:
+    name: Build Paragraph project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Update project.json based on branch
+        shell: bash
+        run: |
+          BRANCH_NAME="${{ steps.extract_branch.outputs.branch }}"
+          echo "Current branch: $BRANCH_NAME"
+          
+          # Check if branches.json exists and has the branch mapping
+          if [ -f ".para/branches.json" ]; then
+            # Extract the project config for the current branch
+            PROJECT_CONFIG=$(jq -r --arg branch "$BRANCH_NAME" '.[$branch] // empty' .para/branches.json)
+            
+            if [ ! -z "$PROJECT_CONFIG" ] && [ "$PROJECT_CONFIG" != "null" ]; then
+              echo "Found configuration for branch $BRANCH_NAME"
+              echo "$PROJECT_CONFIG" > .para/project.json
+              echo "Updated .para/project.json with branch-specific configuration"
+              cat .para/project.json
+            else
+              echo "No configuration found for branch $BRANCH_NAME in branches.json"
+            fi
+          else
+            echo "branches.json not found, skipping project.json update"
+          fi
+
+      - name: Generate and update IDs
+        id: generate_ids
+        shell: bash
+        run: |
+          echo "Running ID generation script..."
+          chmod +x bin/set_generated_ids.sh
+          ./bin/set_generated_ids.sh
+
+      - uses: EndBug/add-and-commit@v9
+        id: commit_ids
+        with:
+          add: 'src'
+          new_branch: ${{ steps.extract_branch.outputs.branch }}
+          message: Auto-update generated IDs
+          committer_name: GitHub Actions
+          committer_email: actions@github.com
+
+      - name: Setup Node.js environment
+        if: steps.commit_ids.outputs.committed != 'true'
+        uses: actions/setup-node@v4.0.1
+        with:
+          node-version: v18.17.1
+
+      - name: Install para CLI globally
+        if: steps.commit_ids.outputs.committed != 'true'
+        shell: bash
+        run: |
+          npm install -g @useparagon/cli
+
+      - name: Authenticate into CLI
+        if: steps.commit_ids.outputs.committed != 'true'
+        env:
+          PARAGON_CLI_KEY: ${{ secrets.PARAGON_CLI_KEY }}
+          PARAGON_HOST_DASHBOARD: https://dashboard.useparagon.com
+          PARAGON_HOST_ZEUS: https://zeus.useparagon.com
+        shell: bash
+        run: |
+          mkdir -p ~/.paragon
+          cat << EOF > ~/.paragon/credentials.json
+          {
+            "default": {
+              "profile": "default",
+              "token": "$PARAGON_CLI_KEY"
+            }
+          }
+          EOF
+          cat << EOF > ~/.paragon/profiles.json
+          {
+            "default": {
+              "name": "default",
+              "default": true,
+              "services": {
+                "zeus": "$PARAGON_HOST_ZEUS",
+                "dashboard": "$PARAGON_HOST_DASHBOARD"
+              }
+            }
+          }
+          EOF
+
+      - name: Build Paragraph project
+        if: steps.commit_ids.outputs.committed != 'true'
+        shell: bash
+        run: |
+          para install
+          para build
