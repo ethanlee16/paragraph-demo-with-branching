@@ -1,4 +1,4 @@
-import { EndpointStep, Workflow } from '@useparagon/core';
+import { generateWorkflowId } from '../../../utils';import { EndpointStep, Workflow } from '@useparagon/core';
 import { IContext } from '@useparagon/core/execution';
 import { IPersona } from '@useparagon/core/persona';
 import { ConditionalInput } from '@useparagon/core/steps/library/conditional';
@@ -97,5 +97,5 @@ export default class extends Workflow<
   /**
    * This property is maintained by Paragon. Do not edit this property.
    */
-  readonly id: string = 'b161a5ec-5d41-4c61-9a19-f011a7aebf04';
+  readonly id: string = generateWorkflowId('b161a5ec-5d41-4c61-9a19-f011a7aebf04');
 }
