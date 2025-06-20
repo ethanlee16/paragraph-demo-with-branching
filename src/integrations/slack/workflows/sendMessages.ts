@@ -1,4 +1,4 @@
-import { EndpointStep, Workflow } from '@useparagon/core';
+import { CronStep, Workflow } from '@useparagon/core';
 import { IContext } from '@useparagon/core/execution';
 import { IPersona } from '@useparagon/core/persona';
 import { ConditionalInput } from '@useparagon/core/steps/library/conditional';
@@ -6,16 +6,16 @@ import { IConnectUser, IPermissionContext } from '@useparagon/core/user';
 import {
   createInputs,
   InputResultMap,
-  ISalesforceIntegration,
-} from '@useparagon/integrations/salesforce';
+  ISlackIntegration,
+} from '@useparagon/integrations/slack';
 
 import personaMeta from '../../../persona.meta';
 
 /**
- * Sync accounts Workflow implementation
+ * Send Messages Workflow implementation
  */
 export default class extends Workflow<
-  ISalesforceIntegration,
+  ISlackIntegration,
   IPersona<typeof personaMeta>,
   InputResultMap
 > {
@@ -23,19 +23,17 @@ export default class extends Workflow<
    * Define workflow steps and orchestration.
    */
   define(
-    integration: ISalesforceIntegration,
+    integration: ISlackIntegration,
     context: IContext<InputResultMap>,
     connectUser: IConnectUser<IPersona<typeof personaMeta>>,
   ) {
-    const triggerStep = new EndpointStep({
-      allowArbitraryPayload: false,
-      paramValidations: [] as const,
-      headerValidations: [] as const,
-      bodyValidations: [] as const,
+    const triggerStep = new CronStep({
+      cron: '0 0 9 */1 * *',
+      timeZone: 'America/Los_Angeles',
     });
 
-    const actionStep = integration.actions.createRecord(
-      { recordType: 'Account', 'field-Name': 'Example' },
+    const actionStep = integration.actions.sendMessage(
+      { channel: `#general`, message: `test` },
       {
         autoRetry: false,
         continueWorkflowOnError: false,
@@ -55,7 +53,7 @@ export default class extends Workflow<
   /**
    * The name of the workflow, used in the Dashboard and Connect Portal.
    */
-  name: string = 'Sync accounts';
+  name: string = 'Send Messages';
 
   /**
    * A user-facing description of the workflow shown in the Connect Portal.
@@ -97,5 +95,5 @@ export default class extends Workflow<
   /**
    * This property is maintained by Paragon. Do not edit this property.
    */
-  readonly id: string = 'cec84636-fa32-5f02-9847-141cad16cff3';
+  readonly id: string = 'c791f6fc-b173-4809-acb2-b892b6f99398';
 }
