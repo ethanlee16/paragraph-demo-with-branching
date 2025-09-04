@@ -6,7 +6,8 @@
     "node": ">=14.17"
   },
   "scripts": {
-    "build": "para build"
+    "build": "para build",
+    "prepare": "husky"
   },
   "dependencies": {
     "@useparagon/core": "1.0.21",
@@ -48,6 +49,7 @@
     "fast-xml-parser": "^3.20.3",
     "firebase": "^9.0.2",
     "form-data": "^3.0.0",
+    "husky": "^9.1.7",
     "mailgun.js": "^8.0.2",
     "moment": "^2.24.0",
     "mysql2": "^2.1.0",

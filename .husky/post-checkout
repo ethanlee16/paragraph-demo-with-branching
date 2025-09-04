@@ -1,0 +1,16 @@
+#!/bin/bash
+
+BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+
+if [ -f ".para/branches.json" ]; then
+  PROJECT_CONFIG=$(jq -r --arg branch "$BRANCH_NAME" '.[$branch] // empty' .para/branches.json)
+  
+  if [ ! -z "$PROJECT_CONFIG" ] && [ "$PROJECT_CONFIG" != "null" ]; then
+    echo "$PROJECT_CONFIG" > .para/project.json
+    echo "\nUpdated .para/project.json with project configuration for branch '$BRANCH_NAME'\n"
+  else
+    echo "No project assigned for branch '$BRANCH_NAME'."
+  fi
+else
+  echo "No project assigned for branch '$BRANCH_NAME'."
+fi
